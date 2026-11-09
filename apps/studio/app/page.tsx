@@ -13,7 +13,9 @@ export default function Home() {
   const [drafts,setDrafts] = useState<Draft[]>([]);
   const [ready,setReady] = useState(false);
   const [notice,setNotice] = useState("");
+  const [engineMessage,setEngineMessage] = useState("Vérification du moteur vidéo…");
   useEffect(()=>{try {const data=JSON.parse(localStorage.getItem(KEY)||"[]");if(Array.isArray(data))setDrafts(data.slice(0,20));}catch{}setReady(true);},[]);
+  useEffect(()=>{let active=true;fetch("/api/generation/status",{cache:"no-store"}).then(async r=>{if(!r.ok)throw new Error("API indisponible");return r.json();}).then(data=>{if(active)setEngineMessage(data.message||"Moteur indisponible.");}).catch(()=>{if(active)setEngineMessage("Impossible de vérifier le moteur vidéo. La génération reste désactivée.");});return()=>{active=false;};},[]);
   function saveDraft(){
     if(!prompt.trim()){setNotice("Ajoute une description de ta vidéo.");return;}
     if(mode==="image"&&!image){setNotice("Ajoute une image de référence.");return;}
@@ -42,7 +44,7 @@ export default function Home() {
         <div className="field"><label htmlFor="logo">Logo de marque (facultatif)</label><input id="logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>pickFile(e.target.files?.[0],"logo")}/>{logo&&<p className="file">{logo.name} · prévu pour la composition finale</p>}</div>
         <div className="controls"><div><label htmlFor="ratio">Format</label><select id="ratio" value={ratio} onChange={e=>setRatio(e.target.value)}><option>9:16</option><option>16:9</option><option>1:1</option></select></div><div><label htmlFor="seconds">Durée cible</label><select id="seconds" value={seconds} onChange={e=>setSeconds(e.target.value)}><option value="5">5 secondes</option><option value="10">10 secondes</option></select></div></div>
         <button className="primary" onClick={saveDraft}>Enregistrer le brouillon <span>→</span></button>
-        <p className="hint">La génération sera activée après connexion d'un backend GPU. Aucun coût n'est engagé.</p>
+        <p className="hint" role="status">{engineMessage}</p><p className="hint">Ce studio prépare et sauvegarde des projets. Il ne génère pas encore de fichiers vidéo.</p>
         {notice&&<p className="notice" role="status">{notice}</p>}
       </div>
       <div className="panel preview"><div className="previewHeader"><h2>Aperçu du projet</h2><span className="pill">Préproduction</span></div><div className={"screen "+(ratio==="9:16"?"portrait":ratio==="1:1"?"square":"landscape")}><div className="spark">✦</div><strong>Votre vidéo apparaîtra ici</strong><span>Prévisualisation disponible après génération</span></div><div className="previewBottom"><span>◷ {seconds}s</span><span>▣ {ratio}</span><span>◈ LTX-2.5</span></div></div></div>
